@@ -1,3 +1,7 @@
+/**
+ * 问题
+ * 1.查询的key值是否会是min(uint64_t)和max(uint64_t)
+*/
 #ifndef SKIPLIST_H
 #define SKIPLIST_H
 
@@ -8,10 +12,15 @@
 // #include <vector>
 #include <string>
 #include <map>
+#include <assert.h>
 
 namespace skiplist {
 using key_t = uint64_t;
 using value_t = std::string;
+
+int PRE_DEFINED_MAX_NODE_NUM = 408;
+int PRE_DEFINED_MAX_LEVEL = 5;
+int PRE_DEFINED_P = 0.25;
 
 struct skipNode {
     key_t key;//节点的键
@@ -43,7 +52,9 @@ class SkipList
     private:
         double p;//生长因子
         int maxLevel;//整个跳表最大层数 由p和n决定
-        int n;//数据数量
+
+        int maxNodeNum;
+        int nodeNum;
         skipNode* head;//头节点
         int level;//当前层数
 
@@ -56,8 +67,8 @@ class SkipList
 
     public:
         explicit SkipList(double p, int element_count);
-        
-        //插入
+        SkipList();
+        // 插入
         void put(key_t key, const value_t &val);
         //查询
         value_t get(key_t key) const;
@@ -67,12 +78,25 @@ class SkipList
         //区间查找
         std::map<key_t,value_t> scan(key_t key1,key_t key2);
 
+
+        //是否已经到达上限
+        bool isFull() { return nodeNum == maxNodeNum; }
+
         ~SkipList();
 
-        void printlist(){
+
+    /**
+     * for debugging
+    */
+    public:
+        int getNodeNum() { return nodeNum; }
+        void printlist()
+        {
             skipNode *x = head;
-			while (x!=NULL){
-                for (int i = 1; i <= x->level;i++){
+            while (x != NULL) {
+                for (int i = 1; i <= x->level; i++) {
+                    if (x->val == "~DELETE~")
+                        continue;
                     printf("%d\t", x->key);
                 }
                 printf("\n");
