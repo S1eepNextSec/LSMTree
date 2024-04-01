@@ -12,11 +12,22 @@ class MemTable {
     using offset_t = uint64_t;
     using vlen_t = uint32_t;
 
+    using magic_t = uint8_t;
+    using check_t = uint16_t;
+
 private:
     std::string SSTABLE_SUFFIX = ".sst";
-    int HEADER_BYTE = 32;
-    int BLOOM_FILTER_BYTE = 8192;
-    int TRIPLE_BYTE = 20;//8 + 8 + 4
+
+    const int HEADER_BYTE = 32;
+    const int BLOOM_FILTER_BYTE = 8192;
+    const int TRIPLE_BYTE = 20;//8 + 8 + 4
+    
+    const int VLOG_MAGIC_BYTE = 1;
+    const magic_t MAGIC_SIGN = 0xff;
+
+    const int VLOG_CHECK_BYTE = 2;
+    const int VLOG_KEY_BYTE = 8;
+    const int VLOG_VLEN_BYTE = 4;
 
 private:
     BloomFilter *bloom_filter;
@@ -36,9 +47,11 @@ private:
     // 生成SSTable的三元组
     void generate_triple(char *,key_t,offset_t,vlen_t);
 
+    void generate_vlog_entry(std::string &,key_t,vlen_t,const val_t&);
+
 public:
     // 生成SSTable文件
-    void createSSTable(const std::string &,offset_t offset_start);
+    void createSSTable(const std::string &,offset_t offset_start,std::string &vlog_entry);
     std::string naive_createSSTable();
     
     // 插入操作

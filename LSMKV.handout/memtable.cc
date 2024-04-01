@@ -51,38 +51,92 @@ void MemTable::generate_triple(char *start, key_t key, offset_t offset, vlen_t v
     *((uint32_t *)start) = vlen;//vlen -> 32 bit
 }
 
+void MemTable::generate_vlog_entry(std::string &vlog_entry_str,key_t key,vlen_t vlen,const val_t& val)
+{
+    //写入vlog条目中的 magic check key vlen 部分
+    char buffer[VLOG_MAGIC_BYTE + VLOG_CHECK_BYTE + VLOG_KEY_BYTE + VLOG_VLEN_BYTE];
+    char *p = buffer;
+    
+    //写入magic部分
+    *((magic_t *)p) = MAGIC_SIGN;
+
+    //check部分等待之后生成
+    //check_ptr记录下要写check的位置
+    p += VLOG_MAGIC_BYTE;
+    char *check_ptr = p;
+
+    //写入key
+    p += VLOG_CHECK_BYTE;
+    *((key_t *)p) = key;
+
+    //写入vlen
+    p += VLOG_KEY_BYTE;
+    *((vlen_t *)p) = vlen;
+
+    //check_str用来给crc16生成校验
+    std::string check_str;
+    
+    check_str.append(buffer + VLOG_MAGIC_BYTE + VLOG_CHECK_BYTE, VLOG_KEY_BYTE + VLOG_VLEN_BYTE);
+    check_str.append(val);
+
+    //转换为vector<unsigned char>
+    std::vector<unsigned char> v(check_str.begin(), check_str.end());
+
+    v.push_back('\0');
+    check_t check = utils::crc16(v);
+    
+    *((check_t *)check_ptr) = check;
+
+    //将vlog的条目真正写入传进来的vlog_entry_str中
+    vlog_entry_str.append(buffer, VLOG_MAGIC_BYTE + VLOG_CHECK_BYTE + VLOG_KEY_BYTE + VLOG_VLEN_BYTE);
+    vlog_entry_str.append(val);
+
+    return;
+}
 
 /**
  * @param path 要创建新的SSTable的位置
  * @param offset_start 在vlog中这块数据的起始偏移位置
 */
-void MemTable::createSSTable(const std::string &path,offset_t offset_start)
+void MemTable::createSSTable(const std::string &path, offset_t offset_start, std::string &vlog_entry)
 {
     // 优化?
     //清空用来写sstable中内容的字符串缓冲区
     memset(sstable_buffer, 0x0, 20000);
     
+    //获取写sstable中head bf triple三元组的起始位置
     char *head_start = sstable_buffer;
     char *bloom_filter_start = head_start + HEADER_BYTE;
     char *triple_start = bloom_filter_start + BLOOM_FILTER_BYTE;
 
+    //获取跳表中的节点
     skiplist::skipNode *skip_node_ptr = this->skip_list->getHeader()->forward[1];
+    skiplist::skipNode *tail = this->skip_list->getTail();
 
+    // 记录最大和最小的键
     key_t max_key;
     key_t min_key = skip_node_ptr->key;
+    
+    //循环中的键、偏移量、长度
     key_t key;
     offset_t offset = offset_start;
     vlen_t vlen;
+
+    //记录实际中有多少个元素
     int count = 0;
+
     // 写三元组部分
-    while (skip_node_ptr->forward[1]!=NULL){
+    while (skip_node_ptr != tail){//直到尾节点停止
         
         count ++;//数据量++
 
         key = skip_node_ptr->key;          // 获取键值
-        vlen = skip_node_ptr->val.length();//获取字符串长度
+        const val_t &val = skip_node_ptr->val;//获取值
+        vlen = val.length();   // 获取字符串长度
 
         generate_triple(triple_start, key, offset, vlen);//写入三元组
+
+        generate_vlog_entry(vlog_entry, key, vlen, val);//将生成的vlog中数据条目写入vlog_entry末尾
 
         skip_node_ptr = skip_node_ptr->forward[1];
 
