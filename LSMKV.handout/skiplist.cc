@@ -17,8 +17,9 @@ SkipList::SkipList(double P, int element_count) : p(P), maxNodeNum(element_count
     head = new skipNode(min_key,"",maxLevel);
     //创建尾节点
     skipNode *tail = new skipNode(max_key, "", maxLevel);
+    this->tail = tail;
     
-    for (int i = 1; i <= maxLevel;i++){
+    for (int i = 1; i <= maxLevel; i++) {
         head->forward[i] = tail;//头节点指向尾节点
         tail->forward[i] = NULL;//尾节点设空
     }
@@ -46,7 +47,8 @@ SkipList::SkipList()//默认直接创建固定p值 固定最大元素数的跳�
     head = new skipNode(min_key, "", maxLevel);
     // 创建尾节点
     skipNode *tail = new skipNode(max_key, "", maxLevel);
-
+    this->tail = tail;
+    
     for (int i = 1; i <= maxLevel; i++) {
         head->forward[i] = tail; // 头节点指向尾节点
         tail->forward[i] = NULL; // 尾节点设空

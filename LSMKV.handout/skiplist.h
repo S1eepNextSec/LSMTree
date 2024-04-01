@@ -56,6 +56,8 @@ class SkipList
         int maxNodeNum;
         int nodeNum;
         skipNode* head;//头节点
+        skipNode* tail;//尾节点
+
         int level;//当前层数
 
         std::random_device rd;
@@ -86,7 +88,7 @@ class SkipList
 
         //暴露给memtable返回头节点的接口
         skipNode *getHeader() { return this->head; }
-
+        skipNode *getTail() { return this->tail; }
         ~SkipList();
 
 
