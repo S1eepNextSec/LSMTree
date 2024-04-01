@@ -36,12 +36,19 @@ private:
     // 生成SSTable的三元组
     void generate_triple(char *,key_t,offset_t,vlen_t);
 
+public:
     // 生成SSTable文件
     void createSSTable(const std::string &,offset_t offset_start);
     std::string naive_createSSTable();
     
     // 插入操作
     bool put(key_t, const val_t&);
+
+    //重置操作
+    void reset();
+
+    //删除操作
+    bool del(key_t);
 
 public:
     MemTable(int TIME_STAMP);

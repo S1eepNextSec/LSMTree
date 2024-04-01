@@ -132,7 +132,8 @@ int SkipList::randomLevel()
     int tempLevel = 1;
 
     std::uniform_real_distribution<> rand_num(0.0, 1.0);
-    while (rand_num(rng)< p && tempLevel < maxLevel) {
+    
+    while (rand_num(rng) < p && tempLevel < maxLevel) {
         tempLevel++;
     }
     return tempLevel;
@@ -164,6 +165,7 @@ bool SkipList::del(key_t del_key)
  * 在跳表中扫描[key1,key2]之间的键值对
  * 返回键值对递增的map
 */
+
 std::map<key_t, value_t> SkipList::scan(key_t key1, key_t key2){
     assert(key1 <= key2);
 
@@ -198,6 +200,35 @@ std::map<key_t, value_t> SkipList::scan(key_t key1, key_t key2){
     }
 
     return map;
+}
+
+
+/**
+ * @brief 
+ * 重置
+ * 清空跳表中的非头和非尾的节点
+ * 
+ */
+void SkipList::reset()
+{
+    skipNode * x = this->head->forward[1];
+
+    while (x->forward[1]!=NULL){
+        skipNode *y = x->forward[1];
+        delete x;
+        x = y;
+    }
+
+    for (int i = 0; i <= maxLevel;i++){
+        this->head->forward[i] = x;
+    }
+
+
+    //重新设置一些动态维护的字段
+    this->nodeNum = 0;
+    this->level = 1;
+
+    return;
 }
 
 } // namespace skiplist

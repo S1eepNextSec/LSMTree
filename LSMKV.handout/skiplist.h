@@ -18,9 +18,9 @@ namespace skiplist {
 using key_t = uint64_t;
 using value_t = std::string;
 
-int PRE_DEFINED_MAX_NODE_NUM = 408;
-int PRE_DEFINED_MAX_LEVEL = 5;
-int PRE_DEFINED_P = 0.25;
+static int PRE_DEFINED_MAX_NODE_NUM = 408;
+static int PRE_DEFINED_MAX_LEVEL = 5;
+static double PRE_DEFINED_P = 0.25;
 
 struct skipNode {
     key_t key;//节点的键
@@ -74,6 +74,8 @@ class SkipList
         value_t get(key_t key) const;
         //删除
         bool del(key_t key);
+        //重置
+        void reset();
 
         //区间查找
         std::map<key_t,value_t> scan(key_t key1,key_t key2);
@@ -81,6 +83,9 @@ class SkipList
 
         //是否已经到达上限
         bool isFull() { return nodeNum == maxNodeNum; }
+
+        //暴露给memtable返回头节点的接口
+        skipNode *getHeader() { return this->head; }
 
         ~SkipList();
 
@@ -97,7 +102,7 @@ class SkipList
                 for (int i = 1; i <= x->level; i++) {
                     if (x->val == "~DELETE~")
                         continue;
-                    printf("%d\t", x->key);
+                    printf("%lu\t", x->key);
                 }
                 printf("\n");
                 x = x->forward[1];

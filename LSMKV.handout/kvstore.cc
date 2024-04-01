@@ -3,6 +3,8 @@
 
 KVStore::KVStore(const std::string &dir, const std::string &vlog) : KVStoreAPI(dir, vlog)
 {
+	//生成内存中的memtale
+    memtable = new MemTable(0);
 }
 
 KVStore::~KVStore()
@@ -15,6 +17,21 @@ KVStore::~KVStore()
  */
 void KVStore::put(uint64_t key, const std::string &s)
 {
+
+    std::string tempPath = std::filesystem::current_path() +"test_sstable.sst";
+
+    if (!memtable->put(key,s)){
+		//将值记录到vlog中，获取初始偏移量
+
+		//生成SSTable文件
+        memtable->createSSTable(tempPath, 0);
+
+		//重置memtable(清空里面存储的键值对)
+        memtable->reset();
+
+		//重置后再次插入
+        memtable->put(key, s);
+    }
 }
 /**
  * Returns the (string) value of the given key.

@@ -24,13 +24,13 @@ MemTable::~MemTable()
 void MemTable::generate_header(char *start, uint64_t time_stamp, uint64_t key_val_count, key_t min, key_t max)
 {
     *((uint64_t *)start) = time_stamp;
-    start += 64;//time_stamp -> 64 bit
+    start += 8;//time_stamp -> 64 bit
 
     *((uint64_t *)start) = key_val_count;
-    start += 64; // key_val_count -> 64 bit
+    start += 8; // key_val_count -> 64 bit
 
     *((uint64_t *)start) = min;
-    start += 64; // min_key -> 64 bit
+    start += 8; // min_key -> 64 bit
 
     *((uint64_t *)start) = max;
 }
@@ -43,10 +43,10 @@ void MemTable::generate_bloomfilter(char *start)
 void MemTable::generate_triple(char *start, key_t key, offset_t offset, vlen_t vlen) 
 {
     *((uint64_t *)start) = key;
-    start += 64; // key -> 64 bit
+    start += 8; // key -> 64 bit
 
     *((uint64_t *)start) = offset;
-    start += 64; // offset -> 64 bit
+    start += 8; // offset -> 64 bit
 
     *((uint32_t *)start) = vlen;//vlen -> 32 bit
 }
@@ -102,7 +102,8 @@ void MemTable::createSSTable(const std::string &path,offset_t offset_start)
 
     std::ofstream file(path);
     if (file.is_open()){
-        file << this->sstable_buffer;
+        //file << this->sstable_buffer;
+        file.write(this->sstable_buffer, HEADER_BYTE + BLOOM_FILTER_BYTE + TRIPLE_BYTE * count);
         file.close();
     }
 }
@@ -112,7 +113,15 @@ std::string MemTable::naive_createSSTable()
 {
 }
 
-
+/**
+ * @brief 
+ * 在内存中的memtable跳表中插入键值对
+ * 
+ * @param key 要插入的键
+ * @param val 要插入的值
+ * @return true 插入成功
+ * @return false 插入失败，表示已经超额，需要生成sstable
+ */
 bool MemTable::put(key_t key,const val_t &val)
 {
     //如果再插入一个就超额了 就需要创建sstable并写入vlog中
@@ -123,4 +132,34 @@ bool MemTable::put(key_t key,const val_t &val)
     this->bloom_filter->insert(key);
 
     return 1;
+}
+
+/**
+ * @brief 
+ * 在内存中的memtable跳表中删除键值对
+ * 删除不会讲节点从跳表中删除
+ * 而是对已经存在的键值对将值覆写成~DELETE~删除标记
+ * 记录的节点数也不会减少
+ * 
+ * 如果不存在这个键，就会返回false
+ * 告诉外部memtable中找不到要删除的键，得去磁盘中寻找
+ * @param key 要删除的键
+ * @return true 删除成功，在跳表中添加键的~DELETE~
+ * @return false 删除失败，因为没找到键
+ */
+bool MemTable::del(key_t key)
+{
+    return this->skip_list->del(key);
+}
+
+/**
+ * @brief 
+ * 重置memtable
+ * 包括重置过滤器以及跳表
+ * 
+ */
+void MemTable::reset()
+{
+    this->bloom_filter->reset();
+    this->skip_list->reset();
 }

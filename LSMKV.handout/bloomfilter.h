@@ -12,7 +12,7 @@ class BloomFilter{
         BloomFilter(int SIZE){
             size = SIZE;
             filter_array = new char[SIZE];//0 ~ SIZE-1
-            std::memset(filter_array, false, size * sizeof(char));
+            std::memset(filter_array, 0x00, size * sizeof(char));
         }
 
         void insert(uint64_t key){
@@ -32,6 +32,10 @@ class BloomFilter{
                     return false;
             }
             return true;
+        }
+
+        void reset(){
+            std::memset(filter_array, 0x00, size * sizeof(char));
         }
 
         char* getFilterString(){
